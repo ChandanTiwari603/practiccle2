@@ -3,136 +3,156 @@ import java.util.*;
 
 // Part b: Student class for serialization
 class Student implements Serializable {
-    private static final long serialVersionUID = 1L;
-    int studentID;
-    String name;
-    double grade;
+    private int studentID;
+    private String name;
+    private double grade;
 
-    Student(int studentID, String name, double grade) {
+    public Student(int studentID, String name, double grade) {
         this.studentID = studentID;
         this.name = name;
         this.grade = grade;
     }
 
+    @Override
     public String toString() {
-        return "ID: " + studentID + ", Name: " + name + ", Grade: " + grade;
+        return "StudentID: " + studentID + ", Name: " + name + ", Grade: " + grade;
     }
 }
 
-// Part c: Employee class for file handling
+// Part c: Employee class
 class Employee implements Serializable {
-    private static final long serialVersionUID = 1L;
-    int id;
-    String name;
-    String designation;
-    double salary;
+    private int id;
+    private String name;
+    private String designation;
+    private double salary;
 
-    Employee(int id, String name, String designation, double salary) {
+    public Employee(int id, String name, String designation, double salary) {
         this.id = id;
         this.name = name;
         this.designation = designation;
         this.salary = salary;
     }
 
+    @Override
     public String toString() {
         return "ID: " + id + ", Name: " + name + ", Designation: " + designation + ", Salary: " + salary;
+    }
+
+    public int getId() {
+        return id;
     }
 }
 
 public class Main {
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    private static final String EMPLOYEE_FILE = "employees.dat";
+
+    public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
-        // ---------------- Part a: Sum of Integers ----------------
+        // Part a: Sum using Autoboxing/Unboxing
         System.out.println("Part a: Sum of Integers Using Autoboxing and Unboxing");
-        ArrayList<Integer> numbers = new ArrayList<>();
-        System.out.println("Enter integers separated by space:");
-        String[] input = sc.nextLine().split("\\s+");
-        for (String s : input) {
-            numbers.add(Integer.parseInt(s)); // Autoboxing
-        }
-
+        System.out.print("Enter integers separated by space: ");
+        String line = sc.nextLine();
+        String[] numbers = line.split("\\s+");
+        List<Integer> nums = new ArrayList<>();
         int sum = 0;
-        for (Integer num : numbers) {
-            sum += num; // Unboxing
+        for (String num : numbers) {
+            Integer val = Integer.parseInt(num); // Autoboxing
+            nums.add(val);
+            sum += val; // Unboxing
         }
-        System.out.println("Total Sum: " + sum);
+        System.out.println("Sum: " + sum);
+        System.out.println();
 
-        // ---------------- Part b: Serialization ----------------
-        System.out.println("\nPart b: Serialization and Deserialization of a Student Object");
-        Student student = new Student(101, "Alice", 9.5);
-
-        // Serialize to file
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("student.ser"));
-        oos.writeObject(student);
-        oos.close();
-
-        // Deserialize from file
-        ObjectInputStream ois = new ObjectInputStream(new FileInputStream("student.ser"));
-        Student deserializedStudent = (Student) ois.readObject();
-        ois.close();
-
-        System.out.println("Deserialized Student: " + deserializedStudent);
-
-        // ---------------- Part c: Employee Management ----------------
-        System.out.println("\nPart c: Menu-Based Employee Management System");
-        ArrayList<Employee> employees = new ArrayList<>();
-        String empFile = "employees.dat";
-
-        // Load existing employees if file exists
-        File file = new File(empFile);
-        if (file.exists()) {
-            try (ObjectInputStream empOIS = new ObjectInputStream(new FileInputStream(file))) {
-                employees = (ArrayList<Employee>) empOIS.readObject();
-            } catch (Exception e) {
-                employees = new ArrayList<>();
-            }
+        // Part b: Serialization & Deserialization
+        System.out.println("Part b: Serialization & Deserialization of Student");
+        Student s = new Student(101, "Alice", 9.5);
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("student.dat"))) {
+            oos.writeObject(s);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        int choice;
-        do {
-            System.out.println("\nMenu: 1-Add Employee  2-Display All Employees  0-Exit");
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("student.dat"))) {
+            Student deserialized = (Student) ois.readObject();
+            System.out.println("Deserialized Student: " + deserialized);
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        System.out.println();
+
+        // Part c: Menu-based Employee Management
+        System.out.println("Part c: Employee Management System");
+        List<Employee> employees = loadEmployees();
+
+        while (true) {
+            System.out.println("\nMenu:\n1. Add Employee\n2. Display All Employees\n0. Exit");
             System.out.print("Enter choice: ");
-            choice = sc.nextInt();
-            sc.nextLine(); // consume newline
+            String choiceStr = sc.nextLine();
+            int choice;
+            try {
+                choice = Integer.parseInt(choiceStr);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input! Try again.");
+                continue;
+            }
 
             switch (choice) {
                 case 1:
-                    System.out.print("Enter ID: ");
-                    int id = sc.nextInt();
-                    sc.nextLine();
-                    System.out.print("Enter Name: ");
-                    String name = sc.nextLine();
-                    System.out.print("Enter Designation: ");
-                    String desig = sc.nextLine();
-                    System.out.print("Enter Salary: ");
-                    double salary = sc.nextDouble();
-                    sc.nextLine();
-                    Employee emp = new Employee(id, name, desig, salary);
-                    employees.add(emp);
-                    // Save to file
-                    try (ObjectOutputStream empOOS = new ObjectOutputStream(new FileOutputStream(empFile))) {
-                        empOOS.writeObject(employees);
+                    try {
+                        System.out.print("Enter ID: ");
+                        int id = Integer.parseInt(sc.nextLine());
+                        boolean exists = employees.stream().anyMatch(emp -> emp.getId() == id);
+                        if (exists) {
+                            System.out.println("Employee ID already exists.");
+                            break;
+                        }
+                        System.out.print("Enter Name: ");
+                        String name = sc.nextLine();
+                        System.out.print("Enter Designation: ");
+                        String desig = sc.nextLine();
+                        System.out.print("Enter Salary: ");
+                        double salary = Double.parseDouble(sc.nextLine());
+                        Employee emp = new Employee(id, name, desig, salary);
+                        employees.add(emp);
+                        saveEmployees(employees);
+                        System.out.println("Employee added successfully.");
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid input!");
                     }
-                    System.out.println("Employee added successfully.");
                     break;
                 case 2:
                     if (employees.isEmpty()) {
                         System.out.println("No employees.");
                     } else {
-                        for (Employee e : employees) {
-                            System.out.println(e);
-                        }
+                        employees.forEach(System.out::println);
                     }
                     break;
                 case 0:
                     System.out.println("Exiting...");
-                    break;
+                    sc.close();
+                    return;
                 default:
                     System.out.println("Invalid choice! Try again.");
             }
-        } while (choice != 0);
+        }
+    }
 
-        sc.close();
+    private static List<Employee> loadEmployees() {
+        File file = new File(EMPLOYEE_FILE);
+        if (!file.exists()) return new ArrayList<>();
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            return (List<Employee>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private static void saveEmployees(List<Employee> employees) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(EMPLOYEE_FILE))) {
+            oos.writeObject(employees);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
